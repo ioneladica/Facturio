@@ -4,3 +4,5 @@ venv/
 .env
 .env.local
 *.db
+*.tsbuildinfo
+next-env.d.ts
