@@ -6,6 +6,7 @@ import {
   notFound,
   ok,
 } from "../../../../lib/apiResponse";
+import { requireAdminApi } from "../../../../lib/requireAdminApi";
 
 type CreditPackInput = {
   name?: string;
@@ -38,6 +39,9 @@ async function readInput(
 }
 
 export async function GET(_request: Request, context: RouteContext) {
+  const authResponse = await requireAdminApi();
+  if (authResponse) return authResponse;
+
   const { id } = await context.params;
   try {
     const pack = await new CreditPacksController().details(id);
@@ -48,6 +52,9 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function PUT(request: Request, context: RouteContext) {
+  const authResponse = await requireAdminApi();
+  if (authResponse) return authResponse;
+
   const { id } = await context.params;
   const input = await readInput(request);
   if (input instanceof NextResponse) return input;
@@ -66,6 +73,9 @@ export async function PUT(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
+  const authResponse = await requireAdminApi();
+  if (authResponse) return authResponse;
+
   const { id } = await context.params;
   try {
     const controller = new CreditPacksController();
