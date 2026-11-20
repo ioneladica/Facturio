@@ -79,4 +79,8 @@ export class CreditPacksController {
     await this.accessor.update(id, creditPackToPrismaData(values));
     return { ok: true, errors: {}, values };
   }
+
+  async delete(id: string): Promise<void> {
+    await this.accessor.remove(id);
+  }
 }

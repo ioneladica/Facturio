@@ -22,4 +22,8 @@ export class CreditPackAccessor {
       data: { ...data, updatedAt: new Date() },
     });
   }
+
+  remove(id: string) {
+    return prisma.creditPack.delete({ where: { id } });
+  }
 }
