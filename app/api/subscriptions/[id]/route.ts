@@ -5,10 +5,14 @@ import {
   notFound,
   ok,
 } from "../../../../lib/apiResponse";
+import { requireAdminApi } from "../../../../lib/requireAdminApi";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: RouteContext) {
+  const authResponse = await requireAdminApi();
+  if (authResponse) return authResponse;
+
   const { id } = await context.params;
   try {
     const subscription = await new UserSubscriptionsController().apiDetails(id);
@@ -22,6 +26,9 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function PUT(request: Request, context: RouteContext) {
+  const authResponse = await requireAdminApi();
+  if (authResponse) return authResponse;
+
   const { id } = await context.params;
   let input: {
     userId?: string;
@@ -57,6 +64,9 @@ export async function PUT(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
+  const authResponse = await requireAdminApi();
+  if (authResponse) return authResponse;
+
   const { id } = await context.params;
   try {
     const controller = new UserSubscriptionsController();

@@ -4,8 +4,12 @@ import {
   handlePrismaError,
   ok,
 } from "../../../lib/apiResponse";
+import { requireAdminApi } from "../../../lib/requireAdminApi";
 
 export async function GET() {
+  const authResponse = await requireAdminApi();
+  if (authResponse) return authResponse;
+
   try {
     const subscriptions = await new UserSubscriptionsController().apiIndex();
     return ok(subscriptions);
@@ -15,6 +19,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const authResponse = await requireAdminApi();
+  if (authResponse) return authResponse;
+
   let input: {
     userId?: string;
     planId?: string;

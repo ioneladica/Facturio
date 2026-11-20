@@ -5,6 +5,7 @@ import {
   handlePrismaError,
   ok,
 } from "../../../lib/apiResponse";
+import { requireAdminApi } from "../../../lib/requireAdminApi";
 
 type UserInput = {
   name?: string;
@@ -33,6 +34,9 @@ async function readInput(request: Request): Promise<UserInput | NextResponse> {
 }
 
 export async function GET() {
+  const authResponse = await requireAdminApi();
+  if (authResponse) return authResponse;
+
   try {
     return ok(await new UsersController().index());
   } catch (error) {
@@ -41,6 +45,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const authResponse = await requireAdminApi();
+  if (authResponse) return authResponse;
+
   const input = await readInput(request);
   if (input instanceof NextResponse) return input;
 
