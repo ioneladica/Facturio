@@ -15,6 +15,7 @@ type UserInput = {
   phone?: string;
   address?: string;
   taxId?: string;
+  password?: string;
 };
 
 function toFormData(input: UserInput): FormData {

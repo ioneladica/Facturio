@@ -15,11 +15,15 @@ export type UserViewModel = {
   phone: string;
   address: string;
   taxId: string;
+  password?: string;
 };
 
 export type UserErrors = Partial<Record<keyof UserViewModel, string>>;
 
-export function validateUser(values: UserViewModel): UserErrors {
+export function validateUser(
+  values: UserViewModel,
+  options: { requirePassword?: boolean } = {},
+): UserErrors {
   const errors: UserErrors = {};
   if (!values.name.trim()) errors.name = "Numele este obligatoriu.";
   if (!values.email.trim() || !values.email.includes("@")) {
@@ -27,6 +31,14 @@ export function validateUser(values: UserViewModel): UserErrors {
   }
   if (!USER_ROLES.includes(values.role)) errors.role = "Rol invalid.";
   if (!USER_STATUSES.includes(values.status)) errors.status = "Status invalid.";
+  if (
+    (options.requirePassword && !values.password) ||
+    (values.password && values.password.length < 8)
+  ) {
+    errors.password = options.requirePassword
+      ? "Parola este obligatorie și trebuie să aibă cel puțin 8 caractere."
+      : "Parola trebuie să aibă cel puțin 8 caractere.";
+  }
   return errors;
 }
 

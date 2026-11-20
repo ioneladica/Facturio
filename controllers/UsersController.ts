@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { hashPassword } from "../lib/auth";
 import { UserAccessor, UserData } from "../accessors/UserAccessor";
 import {
   UserErrors,
@@ -23,6 +23,7 @@ function readFormValues(formData: FormData): UserViewModel {
     phone: read("phone"),
     address: read("address"),
     taxId: read("taxId"),
+    password: read("password"),
   };
 }
 
@@ -38,10 +39,9 @@ function toUserData(values: UserViewModel): UserData {
   };
 }
 
-function createUnusablePasswordHash(): string {
-  return createHash("sha256")
-    .update(randomBytes(32))
-    .digest("hex");
+function withoutPassword(values: UserViewModel): UserViewModel {
+  const { password: _password, ...publicValues } = values;
+  return publicValues;
 }
 
 export class UsersController {
@@ -66,19 +66,22 @@ export class UsersController {
       phone: "",
       address: "",
       taxId: "",
+      password: "",
     };
   }
 
   async createPost(formData: FormData): Promise<UserPostResult> {
     const values = readFormValues(formData);
-    const errors = validateUser(values);
-    if (Object.keys(errors).length > 0) return { ok: false, errors, values };
+    const errors = validateUser(values, { requirePassword: true });
+    if (Object.keys(errors).length > 0) {
+      return { ok: false, errors, values: withoutPassword(values) };
+    }
 
     await this.accessor.add({
       ...toUserData(values),
-      passwordHash: createUnusablePasswordHash(),
+      passwordHash: await hashPassword(values.password ?? ""),
     });
-    return { ok: true, errors: {}, values };
+    return { ok: true, errors: {}, values: withoutPassword(values) };
   }
 
   async editGet(id: string): Promise<UserViewModel | null> {
@@ -88,10 +91,16 @@ export class UsersController {
   async editPost(id: string, formData: FormData): Promise<UserPostResult> {
     const values = readFormValues(formData);
     const errors = validateUser(values);
-    if (Object.keys(errors).length > 0) return { ok: false, errors, values };
+    if (Object.keys(errors).length > 0) {
+      return { ok: false, errors, values: withoutPassword(values) };
+    }
 
-    await this.accessor.update(id, toUserData(values));
-    return { ok: true, errors: {}, values };
+    const data = toUserData(values);
+    if (values.password) {
+      data.passwordHash = await hashPassword(values.password);
+    }
+    await this.accessor.update(id, data);
+    return { ok: true, errors: {}, values: withoutPassword(values) };
   }
 
   async delete(id: string): Promise<void> {

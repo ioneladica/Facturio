@@ -18,6 +18,7 @@ type UserInput = {
   phone?: string;
   address?: string;
   taxId?: string;
+  password?: string;
 };
 
 type RouteContext = { params: Promise<{ id: string }> };
