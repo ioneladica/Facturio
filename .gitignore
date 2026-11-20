@@ -6,3 +6,6 @@ venv/
 *.db
 *.tsbuildinfo
 next-env.d.ts
+.github/copilot-instructions.md
+.postman/
+postman/
