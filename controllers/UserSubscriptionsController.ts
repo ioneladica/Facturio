@@ -109,10 +109,10 @@ export class UserSubscriptionsController {
     id?: string,
   ): Promise<UserSubscriptionPostResult> {
     const values = readFormValues(formData);
-    const plan = values.planId ? await this.plans.getById(values.planId) : null;
-    if (values.planId && !plan) {
-      values.planId = "";
-    }
+    const [user, plan] = await Promise.all([
+      values.userId ? this.users.getById(values.userId) : null,
+      values.planId ? this.plans.getById(values.planId) : null,
+    ]);
     if (plan && values.startDate && !Number.isNaN(Date.parse(values.startDate))) {
       values.endDate = calculateSubscriptionEndDate(
         values.startDate,
@@ -120,6 +120,12 @@ export class UserSubscriptionsController {
       );
     }
     const errors = validateUserSubscription(values);
+    if (values.userId && !user) {
+      errors.userId = "Utilizatorul nu a fost găsit.";
+    }
+    if (values.planId && !plan) {
+      errors.planId = "Planul nu a fost găsit.";
+    }
     if (Object.keys(errors).length > 0) return { ok: false, errors, values };
 
     if (id) {

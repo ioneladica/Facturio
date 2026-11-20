@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
 import { UserSubscriptionsController } from "../../../controllers/UserSubscriptionsController";
+import {
+  handlePrismaError,
+  ok,
+} from "../../../lib/apiResponse";
 
 export async function GET() {
-  const subscriptions = await new UserSubscriptionsController().apiIndex();
-  return NextResponse.json(subscriptions);
+  try {
+    const subscriptions = await new UserSubscriptionsController().apiIndex();
+    return ok(subscriptions);
+  } catch (error) {
+    return handlePrismaError(error);
+  }
 }
 
 export async function POST(request: Request) {
@@ -23,16 +31,17 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await new UserSubscriptionsController().apiCreate(input);
-  if (!result.ok) {
-    return NextResponse.json(result, { status: 400 });
-  }
+  try {
+    const result = await new UserSubscriptionsController().apiCreate(input);
+    if (!result.ok) {
+      return NextResponse.json(result, { status: 400 });
+    }
 
-  const subscription = result.values.id
-    ? await new UserSubscriptionsController().apiDetails(result.values.id)
-    : null;
-  return NextResponse.json(
-    subscription ?? result.values,
-    { status: 201 },
-  );
+    const subscription = result.values.id
+      ? await new UserSubscriptionsController().apiDetails(result.values.id)
+      : null;
+    return ok(subscription ?? result.values, 201);
+  } catch (error) {
+    return handlePrismaError(error);
+  }
 }
