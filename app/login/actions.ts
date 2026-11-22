@@ -33,7 +33,9 @@ export async function loginAction(
   cookieStore.set(authCookie.name, createSessionToken(user.id), {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.COOKIE_SECURE
+      ? process.env.COOKIE_SECURE === "true"
+      : process.env.NODE_ENV === "production",
     maxAge: authCookie.maxAge,
     path: "/",
   });

@@ -6,7 +6,13 @@ const SESSION_COOKIE = "facturio_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 
 function authSecret(): string {
-  return process.env.AUTH_SECRET ?? "facturio-development-secret-change-me";
+  if (process.env.AUTH_SECRET) return process.env.AUTH_SECRET;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "AUTH_SECRET este obligatoriu în producție.",
+    );
+  }
+  return "facturio-development-secret-change-me";
 }
 
 export async function hashPassword(password: string): Promise<string> {
