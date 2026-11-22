@@ -1,49 +1,115 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
-import { SUBSCRIPTION_STATUSES } from "../../models/UserSubscriptionViewModel";
-import type { SubscriptionActionState } from "../../app/admin/subscriptions/actions";
-import type { UserSubscriptionErrors, UserSubscriptionViewModel } from "../../models/UserSubscriptionViewModel";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
+import { ApiError } from "../../lib/api/httpClient";
+import { create, update } from "../../lib/api/subscriptions";
+import { useUsers } from "../../hooks/useUsers";
+import { usePlans } from "../../hooks/usePlans";
+import type {
+  SubscriptionInput,
+} from "../../types/admin/subscriptions";
 import { calculateSubscriptionEndDate } from "../../models/UserSubscriptionViewModel";
+import SubscriptionFields from "./subscriptions/SubscriptionFields";
+import type { SubscriptionErrors } from "./subscriptions/SubscriptionFields";
 
 type Props = {
-  users: Array<{ id: string; name: string }>;
-  plans: Array<{ id: string; name: string; billingPeriod: string }>;
-  initialValues?: UserSubscriptionViewModel;
-  action: (previousState: SubscriptionActionState, formData: FormData) => Promise<SubscriptionActionState>;
+  initialValues?: SubscriptionInput;
+  subscriptionId?: string;
 };
 
-function FieldError({ error }: { error?: string }) {
-  return error ? <p className="field-error">{error}</p> : null;
-}
+export default function SubscriptionForm({
+  initialValues,
+  subscriptionId,
+}: Props) {
+  const router = useRouter();
+  const { data: users, loading: usersLoading, error: usersError } = useUsers();
+  const { data: plans, loading: plansLoading, error: plansError } = usePlans();
+  const [values, setValues] = useState<SubscriptionInput>(
+    initialValues ?? {
+      userId: "",
+      planId: "",
+      status: "ACTIVE",
+      startDate: "",
+    },
+  );
+  const [errors, setErrors] = useState<SubscriptionErrors>({});
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-export default function SubscriptionForm({ users, plans, initialValues, action }: Props) {
-  const defaultValues = initialValues ?? {
-    userId: "", userName: "", planId: "", planName: "", status: "ACTIVE" as const, startDate: "", endDate: "",
-  };
-  const [state, formAction] = useActionState(action, {
-    ok: false,
-    errors: {} as UserSubscriptionErrors,
-    values: defaultValues,
-  });
-  const values = state.values;
-  const [startDate, setStartDate] = useState(values.startDate);
-  const [planId, setPlanId] = useState(values.planId);
+  useEffect(() => {
+    if (initialValues) setValues(initialValues);
+  }, [initialValues]);
+
   const endDate = useMemo(() => {
-    const plan = plans.find((item) => item.id === planId);
-    return plan && startDate
-      ? calculateSubscriptionEndDate(startDate, plan.billingPeriod)
+    const plan = plans.find((item) => item.id === values.planId);
+    return plan && values.startDate
+      ? calculateSubscriptionEndDate(values.startDate, plan.billingPeriod)
       : "";
-  }, [planId, plans, startDate]);
+  }, [plans, values.planId, values.startDate]);
+
+  function setField<K extends keyof SubscriptionInput>(
+    field: K,
+    value: SubscriptionInput[K],
+  ) {
+    setValues((current) => ({ ...current, [field]: value }));
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoading(true);
+    setErrors({});
+    setError(null);
+    try {
+      if (subscriptionId) await update(subscriptionId, values);
+      else await create(values);
+      router.push("/admin/subscriptions");
+      router.refresh();
+    } catch (caughtError) {
+      if (caughtError instanceof ApiError) {
+        if (caughtError.status === 400 && caughtError.errors &&
+            typeof caughtError.errors === "object") {
+          setErrors(caughtError.errors as SubscriptionErrors);
+        } else {
+          setError(caughtError.message);
+        }
+      } else {
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : "Abonamentul nu a putut fi salvat.",
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (usersLoading || plansLoading) {
+    return <p className="muted" role="status">Se încarcă opțiunile...</p>;
+  }
+  if (usersError) return <p className="field-error" role="alert">{usersError}</p>;
+  if (plansError) return <p className="field-error" role="alert">{plansError}</p>;
+
   return (
-    <form action={formAction} className="plan-form">
-      <label>Utilizator<select name="userId" defaultValue={values.userId}><option value="">Selectează utilizatorul</option>{users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select><FieldError error={state.errors.userId} /></label>
-      <label>Plan<select name="planId" defaultValue={values.planId} onChange={(event) => setPlanId(event.target.value)}><option value="">Selectează planul</option>{plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} ({plan.billingPeriod === "YEARLY" ? "anual" : "lunar"})</option>)}</select><FieldError error={state.errors.planId} /></label>
-      <label>Status<select name="status" defaultValue={values.status}>{SUBSCRIPTION_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</select><FieldError error={state.errors.status} /></label>
-      <label>Data început<input name="startDate" type="datetime-local" defaultValue={values.startDate} onChange={(event) => setStartDate(event.target.value)} /><FieldError error={state.errors.startDate} /></label>
-      <label>Data sfârșit calculată<input type="datetime-local" value={endDate} readOnly /><span className="muted">Calculată automat în funcție de perioada planului.</span><FieldError error={state.errors.endDate} /></label>
-      <div className="form-actions"><button type="submit">Salvează</button><Link href="/admin/subscriptions">Înapoi la listă</Link></div>
+    <form onSubmit={handleSubmit} className="plan-form">
+      {error && <p className="field-error" role="alert">{error}</p>}
+      <SubscriptionFields
+        values={values}
+        errors={errors}
+        users={users}
+        plans={plans}
+        endDate={endDate}
+        setField={setField}
+      />
+      <div className="form-actions">
+        <button type="submit" disabled={loading}>
+          {loading ? "Se salvează..." : "Salvează"}
+        </button>
+        <Link href="/admin/subscriptions">Înapoi la listă</Link>
+      </div>
     </form>
   );
 }
