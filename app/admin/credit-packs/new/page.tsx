@@ -1,10 +1,6 @@
-import { CreditPacksController } from "../../../../controllers/CreditPacksController";
 import CreditPackForm from "../../../../components/admin/CreditPackForm";
-import { createCreditPackAction } from "../actions";
-import { requireAdmin } from "../../../../lib/requireAdmin";
 
-export default async function NewCreditPackPage() {
-  await requireAdmin();
+export default function NewCreditPackPage() {
   return (
     <section>
       <div className="page-header">
@@ -17,8 +13,13 @@ export default async function NewCreditPackPage() {
         </div>
       </div>
       <CreditPackForm
-        initialValues={new CreditPacksController().createGet()}
-        action={createCreditPackAction}
+        initialValues={{
+          name: "",
+          description: "",
+          credits: 0,
+          price: 0,
+          isActive: true,
+        }}
       />
     </section>
   );

@@ -1,20 +1,22 @@
-import { notFound } from "next/navigation";
-import { CreditPacksController } from "../../../../../controllers/CreditPacksController";
+"use client";
+
+import { use } from "react";
 import CreditPackForm from "../../../../../components/admin/CreditPackForm";
-import { updateCreditPackAction } from "../../actions";
-import { requireAdmin } from "../../../../../lib/requireAdmin";
+import LoadingSpinner from "../../../../../components/common/LoadingSpinner";
+import ErrorMessage from "../../../../../components/common/ErrorMessage";
+import { useCreditPack } from "../../../../../hooks/useCreditPack";
 
-export const dynamic = "force-dynamic";
-
-export default async function EditCreditPackPage({
+export default function EditCreditPackPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAdmin();
-  const { id } = await params;
-  const pack = await new CreditPacksController().editGet(id);
-  if (!pack) notFound();
+  const { id } = use(params);
+  const { data: pack, loading, error } = useCreditPack(id);
+
+  if (loading) return <LoadingSpinner label="Se încarcă pachetul..." />;
+  if (error) return <ErrorMessage message={error} />;
+  if (!pack) return <ErrorMessage message="Pachetul nu a fost găsit." />;
 
   return (
     <section>
@@ -28,8 +30,14 @@ export default async function EditCreditPackPage({
         </div>
       </div>
       <CreditPackForm
-        initialValues={pack}
-        action={updateCreditPackAction.bind(null, id)}
+        packId={id}
+        initialValues={{
+          name: pack.name,
+          description: pack.description,
+          credits: pack.credits,
+          price: pack.price,
+          isActive: pack.isActive,
+        }}
       />
     </section>
   );
