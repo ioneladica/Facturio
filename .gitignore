@@ -2,6 +2,8 @@ node_modules/
 .next/
 venv/
 .env
+.env.production
+!.env.production.example
 .env.local
 *.db
 *.tsbuildinfo
