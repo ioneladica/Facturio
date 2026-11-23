@@ -22,6 +22,7 @@ export async function loginAction(
   const user = await prisma.user.findUnique({ where: { email } });
   if (
     !user ||
+    user.isDeleted ||
     user.role !== "ADMIN" ||
     user.status !== "ACTIVE" ||
     !(await verifyPassword(password, user.passwordHash))

@@ -16,9 +16,14 @@ export async function requireAdminApi(): Promise<NextResponse | null> {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, status: true },
+    select: { role: true, status: true, isDeleted: true },
   });
-  if (!user || user.role !== "ADMIN" || user.status !== "ACTIVE") {
+  if (
+    !user ||
+    user.isDeleted ||
+    user.role !== "ADMIN" ||
+    user.status !== "ACTIVE"
+  ) {
     return NextResponse.json(
       { error: "Nu aveți permisiunea de a accesa această resursă." },
       { status: 403 },

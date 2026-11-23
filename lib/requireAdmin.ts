@@ -10,9 +10,14 @@ export async function requireAdmin(): Promise<void> {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, status: true },
+    select: { role: true, status: true, isDeleted: true },
   });
-  if (!user || user.role !== "ADMIN" || user.status !== "ACTIVE") {
+  if (
+    !user ||
+    user.isDeleted ||
+    user.role !== "ADMIN" ||
+    user.status !== "ACTIVE"
+  ) {
     cookieStore.delete(authCookie.name);
     redirect("/login");
   }
