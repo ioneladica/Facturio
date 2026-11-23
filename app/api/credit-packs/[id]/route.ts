@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { CreditPacksController } from "../../../../controllers/CreditPacksController";
 import {
   badRequest,
+  conflict,
   handlePrismaError,
   notFound,
   ok,
 } from "../../../../lib/apiResponse";
+import { Prisma } from "@prisma/client";
 import { requireAdminApi } from "../../../../lib/requireAdminApi";
 
 type CreditPackInput = {
@@ -85,6 +87,14 @@ export async function DELETE(_request: Request, context: RouteContext) {
     await controller.delete(id);
     return ok({ message: "Pachetul de credite a fost șters." });
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2003"
+    ) {
+      return conflict(
+        "Pachetul nu poate fi sters deoarece a fost achizitionat de utilizatori.",
+      );
+    }
     return handlePrismaError(error);
   }
 }
