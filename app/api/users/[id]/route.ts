@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { UsersController } from "../../../../controllers/UsersController";
-import { UserSubscriptionsController } from "../../../../controllers/UserSubscriptionsController";
 import {
   badRequest,
   conflict,
@@ -8,6 +8,7 @@ import {
   notFound,
   ok,
 } from "../../../../lib/apiResponse";
+import { authCookie, readSessionUserId } from "../../../../lib/auth";
 import { requireAdminApi } from "../../../../lib/requireAdminApi";
 
 type UserInput = {
@@ -79,17 +80,23 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
   const { id } = await context.params;
   try {
+    const cookieStore = await cookies();
+    const administratorId = readSessionUserId(
+      cookieStore.get(authCookie.name)?.value,
+    );
+    if (administratorId === id) {
+      return conflict("Nu vă puteți șterge propriul cont.");
+    }
+
     const controller = new UsersController();
     if (!(await controller.details(id))) {
       return notFound("Utilizatorul nu a fost găsit.");
     }
-    const subscriptions = await new UserSubscriptionsController().index();
-    if (subscriptions.some((subscription) => subscription.userId === id)) {
-      return conflict(
-        "Utilizatorul nu poate fi șters deoarece are abonamente.",
-      );
+
+    const result = await controller.delete(id);
+    if (!result.deleted || result.count === 0) {
+      return notFound("Utilizatorul nu a fost găsit.");
     }
-    await controller.delete(id);
     return ok({ message: "Utilizatorul a fost șters." });
   } catch (error) {
     return handlePrismaError(error);

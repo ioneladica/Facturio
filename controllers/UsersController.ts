@@ -103,7 +103,11 @@ export class UsersController {
     return { ok: true, errors: {}, values: withoutPassword(values) };
   }
 
-  async delete(id: string): Promise<void> {
-    await this.accessor.remove(id);
+  async delete(id: string): Promise<{ deleted: boolean; count: number }> {
+    const result = await this.accessor.remove(id);
+    return {
+      deleted: result.count > 0,
+      count: result.count,
+    };
   }
 }
