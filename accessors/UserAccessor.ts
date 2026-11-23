@@ -13,11 +13,16 @@ export type UserData = {
 
 export class UserAccessor {
   getAll() {
-    return prisma.user.findMany({ orderBy: [{ name: "asc" }, { email: "asc" }] });
+    return prisma.user.findMany({
+      where: { isDeleted: false },
+      orderBy: [{ name: "asc" }, { email: "asc" }],
+    });
   }
 
   getById(id: string) {
-    return prisma.user.findUnique({ where: { id } });
+    return prisma.user.findFirst({
+      where: { id, isDeleted: false },
+    });
   }
 
   add(data: UserData & { passwordHash: string }) {
@@ -25,13 +30,20 @@ export class UserAccessor {
   }
 
   update(id: string, data: UserData) {
-    return prisma.user.update({
-      where: { id },
+    return prisma.user.updateMany({
+      where: { id, isDeleted: false },
       data: { ...data, updatedAt: new Date() },
     });
   }
 
   remove(id: string) {
-    return prisma.user.delete({ where: { id } });
+    return prisma.user.updateMany({
+      where: { id, isDeleted: false },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
   }
 }
