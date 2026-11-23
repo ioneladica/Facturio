@@ -129,6 +129,8 @@ model User {
   passwordHash     String
   role             String             @default("USER")
   status           String             @default("ACTIVE")
+  isDeleted        Boolean            @default(false)
+  deletedAt        DateTime?          @db.Timestamp(6)
   phone            String?
   address          String?
   taxId            String?
